@@ -28,7 +28,7 @@ $(document).ready(function(){
         if(id > -1){
             ajaxCall("home/getrestaurant", {id:id}, "POST", "json", function(data){                
                 if(!$.isEmptyObject(data)){
-                    plotMaps(data);
+                    plotMaps(data, false, true);
                     var info = restaurantInfo(data[0]);
                     $(".restaurant_detail").removeClass("hide").html(info);
                 }
@@ -93,13 +93,17 @@ function initialize() {
 	});      	
 }
 
-function plotMaps(data, isCircle){
+function plotMaps(data, isCircle, isDirectory){
 
 	var map, markers = [], info = [];
     var bounds = new google.maps.LatLngBounds();
     var mapOptions = {
         mapTypeId: 'roadmap'
     }
+    var directionsDisplay = new google.maps.DirectionsRenderer();
+    var directionsService = new google.maps.DirectionsService();
+
+    var zoomValue = (isCircle) ? 13 : 14;
     var latLngCenter = new google.maps.LatLng(myOrigin.lat, myOrigin.longi);
     var markerCenter = new google.maps.Marker({
             position: latLngCenter,
@@ -122,8 +126,7 @@ function plotMaps(data, isCircle){
                 strokeColor: '#313131',
                 strokeOpacity: .4,
                 strokeWeight: .8
-            });
-        // attach circle to marker
+            });      
         circle.bindTo('center', markerCenter, 'position')
     }   
     for(var x = 0; x < data.length; x++){
@@ -154,9 +157,24 @@ function plotMaps(data, isCircle){
     }
    
     var boundsListener = google.maps.event.addListener((map), 'bounds_changed', function(event) {
-        this.setZoom(14);
+        this.setZoom(zoomValue);
         google.maps.event.removeListener(boundsListener);
     });
+
+    //if is Directory service
+    if(isDirectory){
+        var request = {
+          origin: new google.maps.LatLng(myOrigin.lat, myOrigin.longi),
+          destination: new google.maps.LatLng(data[0].lat, data[0].longi),        
+          travelMode: google.maps.TravelMode.WALKING
+      };
+      directionsService.route(request, function(response, status) {
+        if (status == google.maps.DirectionsStatus.OK) {
+          directionsDisplay.setDirections(response);
+        }
+      });
+    }
+    directionsDisplay.setMap(map);//directions
 }
 
 function getDistance(data){
