@@ -1,34 +1,34 @@
 $(document).ready(function(){
-	initializeType();
-	$(".select_category").change(function(){
-		var id = $(this).val();
-		if(id > -1){
-			ajaxCall("home/getmapbasedonid", {id:id}, "POST", "json", function(data){
-				if(!$.isEmptyObject(data)){
-					var html = "";
-					plotMaps(data);
-					html += "<option value='-1'>--Select Restaurant--</option>";
-					for(var index in data){
-						html +="<option value='" + data[index].id + "'>" + data[index].name + "</option>";
-					}
-					$(".select_restaurant").html(html);
-					$(".res_list").removeClass("hide");
-				}
-			});
-		}else{
-			ajaxCall("home/loaddefaultmaps", {}, "GET", "json",function(data){
-				plotMaps(data);
-				$(".res_list").addClass("hide");	
-			});	
-		}
-	});
+    initializeType();
+    $(".select_category").change(function(){
+        var id = $(this).val();
+        if(id > -1){
+            ajaxCall("home/getmapbasedonid", {id:id}, "POST", "json", function(data){
+                if(!$.isEmptyObject(data)){
+                    var html = "";
+                    plotMaps(data);
+                    html += "<option value='-1'>--Select Restaurant--</option>";
+                    for(var index in data){
+                        html +="<option value='" + data[index].id + "'>" + data[index].name + "</option>";
+                    }
+                    $(".select_restaurant").html(html);
+                    $(".res_list").removeClass("hide");
+                }
+            });
+        }else{
+            ajaxCall("home/loaddefaultmaps", {}, "GET", "json",function(data){
+                plotMaps(data);
+                $(".res_list").addClass("hide");    
+            }); 
+        }
+    });
     //restaurant
     $(".select_restaurant").change(function(){
         var id = $(this).val();
         if(id > -1){
             ajaxCall("home/getrestaurant", {id:id}, "POST", "json", function(data){                
                 if(!$.isEmptyObject(data)){
-                    plotMaps(data);
+                    plotMaps(data, false, true);
                     var info = restaurantInfo(data[0]);
                     $(".restaurant_detail").removeClass("hide").html(info);
                 }
@@ -59,47 +59,51 @@ function restaurantInfo(data){
     return html;
 }
 
-function ajaxCall(url, data, type, dataType, callback){	
-	return $.ajax({
-		url: url,
+function ajaxCall(url, data, type, dataType, callback){ 
+    return $.ajax({
+        url: "index.php/" + url,
         type: type,
-       	data: data,	           	
-       	dataType: dataType,	           
+        data: data,             
+        dataType: dataType,            
         success: function(data){
-        	if(callback){
-        		callback(data);
-        	}
+            if(callback){
+                callback(data);
+            }
         },
         error: function(){
-        	console.log("There was an error with your request.");
+            console.log("There was an error with your request.");
         }
-    });	
+    }); 
 }
 
 function initializeType(){
-	ajaxCall("home/getcategory", {}, "GET", "json", function(data){
-		var html = "";
-		for(var index in data){
-			html +="<option value='" + index + "'>" + data[index] + "</option>";
-		}
-		$(".select_category").append(html);
-		initialize();
-	});
+    ajaxCall("home/getcategory", {}, "GET", "json", function(data){
+        var html = "";
+        for(var index in data){
+            html +="<option value='" + index + "'>" + data[index] + "</option>";
+        }
+        $(".select_category").append(html);
+        initialize();
+    });
 }
 
 function initialize() {
-	ajaxCall("home/loaddefaultmaps", {}, "GET", "json",function(data){
-		plotMaps(data, true);	
-	});      	
+    ajaxCall("home/loaddefaultmaps", {}, "GET", "json",function(data){
+        plotMaps(data, true);   
+    });         
 }
 
-function plotMaps(data, isCircle){
+function plotMaps(data, isCircle, isDirectory){
 
-	var map, markers = [], info = [];
+    var map, markers = [], info = [];
     var bounds = new google.maps.LatLngBounds();
     var mapOptions = {
         mapTypeId: 'roadmap'
     }
+    var directionsDisplay = new google.maps.DirectionsRenderer();
+    var directionsService = new google.maps.DirectionsService();
+
+    var zoomValue = (isCircle) ? 13 : 14;
     var latLngCenter = new google.maps.LatLng(myOrigin.lat, myOrigin.longi);
     var markerCenter = new google.maps.Marker({
             position: latLngCenter,
@@ -122,13 +126,12 @@ function plotMaps(data, isCircle){
                 strokeColor: '#313131',
                 strokeOpacity: .4,
                 strokeWeight: .8
-            });
-        // attach circle to marker
+            });      
         circle.bindTo('center', markerCenter, 'position')
     }   
     for(var x = 0; x < data.length; x++){
-    	markers.push(new Array(data[x].name, data[x].lat, data[x].longi));
-    	info.push(new Array('<div class="info_content"><h3>' + data[x].name + '</h3><p>SPECIALTY: ' + data[x].specialty + '<br/>' + 'VISITS: ' + data[x].visits + '</p></div>'));        
+        markers.push(new Array(data[x].name, data[x].lat, data[x].longi));
+        info.push(new Array('<div class="info_content"><h3>' + data[x].name + '</h3><p>SPECIALTY: ' + data[x].specialty + '<br/>' + 'VISITS: ' + data[x].visits + '</p></div>'));        
     }
 
     var infoWindow = new google.maps.InfoWindow(), marker, i;
@@ -143,7 +146,7 @@ function plotMaps(data, isCircle){
         });
          
         google.maps.event.addListener(marker, 'click', (function(marker, i) {
-            return function() {	            	
+            return function() {                 
                 infoWindow.setContent(info[i][0]);
                 infoWindow.setOptions({maxWidth: 400});
                 infoWindow.open(map, marker);
@@ -154,9 +157,24 @@ function plotMaps(data, isCircle){
     }
    
     var boundsListener = google.maps.event.addListener((map), 'bounds_changed', function(event) {
-        this.setZoom(14);
+        this.setZoom(zoomValue);
         google.maps.event.removeListener(boundsListener);
     });
+
+    //if is Directory service
+    if(isDirectory){
+        var request = {
+          origin: new google.maps.LatLng(myOrigin.lat, myOrigin.longi),
+          destination: new google.maps.LatLng(data[0].lat, data[0].longi),        
+          travelMode: google.maps.TravelMode.WALKING
+      };
+      directionsService.route(request, function(response, status) {
+        if (status == google.maps.DirectionsStatus.OK) {
+          directionsDisplay.setDirections(response);
+        }
+      });
+    }
+    directionsDisplay.setMap(map);//directions
 }
 
 function getDistance(data){

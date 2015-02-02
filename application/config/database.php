@@ -48,14 +48,14 @@
 $active_group = 'default';
 $active_record = TRUE;
 
-$db['default']['hostname'] = 'localhost';
+$db['default']['hostname'] = 'mysql1.000webhost.com';
 // $db['default']['username'] = 'postgres';
 // $db['default']['password'] = 'admin';
 // $db['default']['database'] = 'navagis';
 // $db['default']['dbdriver'] = 'postgre';
-$db['default']['username'] = 'root';
-$db['default']['password'] = 'admin';
-$db['default']['database'] = 'navagis';
+$db['default']['username'] = 'a9048949_nav';
+$db['default']['password'] = 'simonl33';
+$db['default']['database'] = 'a9048949_nav';
 $db['default']['dbdriver'] = 'mysql';
 $db['default']['dbprefix'] = '';
 $db['default']['pconnect'] = TRUE;
